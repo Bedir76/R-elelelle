@@ -2,7 +2,7 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-# Anlık verileri tutan sözlük
+# Verileri tutan sözlük
 anlik_veri = {
     "konum": "Konum bekleniyor...",
     "bildirim": "Henüz bildirim gelmedi..."
@@ -10,11 +10,15 @@ anlik_veri = {
 
 @app.route('/update', methods=['POST'])
 def update():
+    # Konum verisi: "20.33345, 30.93939" formatında gelir
     if 'lat' in request.form:
-        anlik_veri["konum"] = f"{request.form.get('lat')}, {request.form.get('lon')}"
+        anlik_veri["konum"] = request.form.get('lat')
+    
+    # Bildirim verisi: "Başlık: İçerik" formatında gelir
     if 'bildirim' in request.form:
         anlik_veri["bildirim"] = request.form.get('bildirim')
-    return "OK"
+    
+    return "OK", 200
 
 @app.route('/get-status', methods=['GET'])
 def get_status():
@@ -24,15 +28,22 @@ def get_status():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Cihaz Paneli</title>
-        <style>body {{ font-family: sans-serif; padding: 20px; }}</style>
+        <title>Sistem Paneli</title>
+        <style>
+            body {{ font-family: sans-serif; padding: 20px; line-height: 1.6; }}
+            .box {{ border: 1px solid #ccc; padding: 15px; border-radius: 8px; margin-bottom: 10px; }}
+            h3 {{ margin-top: 0; color: #333; }}
+        </style>
     </head>
     <body>
-        <h3>📍 Anlık Konum</h3>
-        <p style="color: blue; font-size: 18px;">{anlik_veri['konum']}</p>
-        <hr>
-        <h3>🔔 Son Bildirim</h3>
-        <p style="color: green; font-size: 18px;">{anlik_veri['bildirim']}</p>
+        <div class="box">
+            <h3>📍 Konum</h3>
+            <p style="color: blue; font-weight: bold;">{anlik_veri['konum']}</p>
+        </div>
+        <div class="box">
+            <h3>🔔 Son Bildirim</h3>
+            <p style="color: green;">{anlik_veri['bildirim']}</p>
+        </div>
     </body>
     </html>
     """
