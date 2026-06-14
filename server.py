@@ -64,7 +64,7 @@ def get_status():
     <html>
     <head>
         <meta charset='UTF-8'>
-        <meta http-equiv='refresh' content='5'>
+        <meta http-equiv='refresh' content='60'>
         <title>Zewnd Kontrol Paneli</title>
     </head>
     <body style='font-family:sans-serif; padding:20px; background-color:#f4f4f9;'>
